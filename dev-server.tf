@@ -20,7 +20,7 @@ resource "aws_instance" "devhost" {
 	ami = "${lookup(var.amazon_linux_amis, var.aws_region)}"
     instance_type = "m1.small"
     associate_public_ip_address = true
-
+    subnet_id = "${aws_subnet.logserver_subnet1.id}"
     security_groups = [ "${aws_security_group.devhost.id}" ]
   	key_name = "${var.key_name}"
   	user_data = ""  
