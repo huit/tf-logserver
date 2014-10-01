@@ -1,3 +1,5 @@
 *~
 terraform.tfstate*
 *.tfplan
+terraform.tfvars
+logserver.pdf
