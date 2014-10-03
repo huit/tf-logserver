@@ -14,6 +14,28 @@ resource "aws_security_group" "devhost"
     protocol = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  ingress {
+    from_port = 9200
+    to_port = 9200
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port = 9292
+    to_port = 9292
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  
+  ingress {
+    from_port = 9300
+    to_port = 9300
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
 }
 
 resource "aws_instance" "devhost" {
@@ -23,5 +45,10 @@ resource "aws_instance" "devhost" {
     subnet_id = "${aws_subnet.logserver_subnet1.id}"
     security_groups = [ "${aws_security_group.devhost.id}" ]
   	key_name = "${var.key_name}"
-  	user_data = ""  
+  	user_data = "${file("./data/devhost.userdata")}"
 }
+
+output "devhost_address" {
+  value = "${aws_instance.devhost.public_dns}"
+}
+

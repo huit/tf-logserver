@@ -1,0 +1,86 @@
+#!/bin/bash
+
+yum -y update
+PKGS="docker "
+
+yum -y install $PKGS
+
+PUB_HOSTNAME=$( ec2-metadata -p | awk '{print $2}')
+
+service docker start 
+
+#
+# https://registry.hub.docker.com/u/dockerfile/elasticsearch/
+#
+run_elasticsearch () {
+	
+	mkdir /var/elasticsearch
+
+	(
+	cat <<'EOF'
+path:
+  logs: /data/log
+  data: /data/data
+EOF  
+    ) > /var/elasticsearch/elasticsearch.yml
+
+	docker run -d \
+      -p 9200:9200 \
+      -p 9300:9300 \
+      -v /var/elasticsearch:/data \
+      dockerfile/elasticsearch \
+      /elasticsearch/bin/elasticsearch \
+        -Des.config=/data/elasticsearch.yml 
+
+}
+
+#
+# https://registry.hub.docker.com/u/pblittle/docker-logstash/
+#
+run_logstash () {
+	
+	mkdir /var/logstash
+
+	(
+	cat <<'EOF'
+
+input {
+  stdin {
+    type => "stdin-type"
+  }
+
+  file {
+    type => "syslog"
+    path => [ "/var/log/*.log", "/var/log/messages", "/var/log/syslog" ]
+    start_position => "beginning"
+  }
+
+  syslog {
+  }
+}
+
+output {
+  stdout { 
+    codec => rubydebug
+  }
+
+  elasticsearch {
+    bind_host => "${PUB_HOSTNAME}"
+    port => "9200"
+  }
+}
+EOF
+    ) > /var/logstash/logstash.conf
+
+	docker run -d \
+  		-e LOGSTASH_CONFIG_FILE=/etc/logstash/logstash.conf \
+  		-p 514:514 \
+  		-p 9292:9292 \
+  		-v /var/logstash:/etc/logstash \
+  		pblittle/docker-logstash 
+
+}
+
+
+run_elasticsearch
+run_logstash
